@@ -8,58 +8,57 @@
 <body>
    
         
-    <h1 class="page-title">
-        Multiverso
-
-    </h1>
-    <button id="add-node-button">Agregar nodo</button>
-    <button id="remove-node-button">Eliminar nodo</button>
-    <p id="selected-node">Nodo seleccionado: 0</p>
-    <select id="adjacent-nodes-dropdown">
-        <option value="">Selecciona un nodo</option>
-    </select>
-    <button id="travel-button">Viajar</button>
-    <div id="graph"></div>
+    <div class="container">
+        <h1 class="page-title">Multiverso</h1>
+        <button id="add-node-button">Agregar nodo</button>
+        <button id="remove-node-button">Eliminar nodo</button>
+        <p id="selected-node">Nodo seleccionado: 0</p>
+    
+        <!-- Contenedor para las barras de opciones y los botones -->
+        <div class="dropdown-button-container">
+            <!-- Contenedor para la barra de opciones de viaje normal y el botón "Iniciar viaje" -->
+            <div>
+                <select id="adjacent-nodes-dropdown">
+                    <option value="">Selecciona un nodo</option>
+                </select>
+                <button id="travel-button">Viajar</button>
+            </div>
+    
+            <!-- Contenedor para la barra de opciones de viaje rápido y el botón "Iniciar viaje rápido" -->
+            <div>
+                <select id="all-nodes-dropdown">
+                    <option value="">Selecciona un nodo</option>
+                </select>
+                <button onclick="startFastJourney()">Iniciar viaje rápido</button>
+            </div>
+        </div>
+        <div id="graph"></div>
+    </div>
+    
     <script src="main.js"></script>
+<div class="transparent-container">
+    <script>
+        let previousNode;
+        let currentNode;
+        let messengerNode = 0;
+        let travelPath = [];
+        let isFirstLoad = true;
 
-<script>
-    var svg = d3.select("body").append("svg")
-    .attr("width", 1920)
-    .attr("height", 1920);
+        var svg = d3.select("#graph").append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", "0 0 1920 1920")
+            .style("display", "block")
+            .style("margin", "auto");
 
-function addNode() {
-    fetch('/add_node')
-        .then(response => response.json())
-        .then(data => drawGraph(data));
-}
+    function getRandomColor() {
+        var r = Math.floor(Math.random() * 256);
+        var g = Math.floor(Math.random() * 256);
+        var b = Math.floor(Math.random() * 256);
+        return "rgb(" + r + "," + g + "," + b + ")";
+    }
 
-function selectNode(nodeId) {
-    // Actualiza el nodo seleccionado en el servidor
-    fetch('/select_node/' + nodeId)
-        .then(response => response.json())
-        .then(data => {
-            // Actualiza el nodo seleccionado en la página
-            document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + nodeId;
-
-            // Actualiza los nodos adyacentes en la página
-            var dropdown = document.getElementById('adjacent-nodes-dropdown');
-            dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
-            for (var i = 0; i < data.adjacent_nodes.length; i++) {
-                var option = document.createElement('option');
-                option.value = data.adjacent_nodes[i];
-                option.text = 'Nodo ' + data.adjacent_nodes[i];
-                dropdown.appendChild(option);
-            }
-
-            // Actualiza el nodo anterior y el nodo actual
-            previousNode = currentNode;
-            currentNode = nodeId;
-
-            drawGraph(data);
-        });
-}
-
-function selectFirstAvailableNode(start, end) {
+    function selectFirstAvailableNode(start, end) {
         for (let i = start; i <= end; i++) {
             fetch('/select_node/' + i)
                 .then(response => {
@@ -73,12 +72,17 @@ function selectFirstAvailableNode(start, end) {
                         document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + i;
                         var dropdown = document.getElementById('adjacent-nodes-dropdown');
                         dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
-                        for (var j = 0; j < data.adjacent_nodes.length; j++) {
+
+                        // Filtramos el nodo mensajero de la lista de nodos adyacentes
+                        var adjacentNodes = data.adjacent_nodes.filter(node => node !== messengerNode);
+
+                        for (var j = 0; j < adjacentNodes.length; j++) {
                             var option = document.createElement('option');
-                            option.value = data.adjacent_nodes[j];
-                            option.text = 'Nodo ' + data.adjacent_nodes[j];
+                            option.value = adjacentNodes[j];
+                            option.text = 'Nodo ' + adjacentNodes[j];
                             dropdown.appendChild(option);
                         }
+
                         drawGraph(data);
                         throw new Error('Nodo seleccionado: ' + i);
                     }
@@ -91,121 +95,200 @@ function selectFirstAvailableNode(start, end) {
         }
     }
 
-// Función para eliminar un nodo
-function removeNode() {
-    // Hacemos una solicitud al servidor para eliminar un nodo
-    fetch('/remove_node')
-        .then(response => response.json()) // Convertimos la respuesta a JSON
-        .then(data => {
-            // Dibujamos el gráfico con los datos actualizados
-            drawGraph(data);
+    function addNode() {
+        fetch('/add_node')
+            .then(response => response.json())
+            .then(data => {
+                drawGraph(data);
+                fillAllNodesDropdown(data.nodes); // Actualiza la lista de nodos disponibles
+            });
+    }
+    function selectNode(nodeId) {
+        fetch('/select_node/' + nodeId)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('No se pudo seleccionar el nodo ' + nodeId);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) {
+                    document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + nodeId;
+                    var dropdown = document.getElementById('adjacent-nodes-dropdown');
+                    dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
 
-            // Si hay nodos adyacentes al nodo eliminado, seleccionamos el primer nodo adyacente
-            // Esto es útil para asegurarnos de que siempre haya un nodo seleccionado después de eliminar un nodo
-            if (data.adjacent_nodes && data.adjacent_nodes.length > 0) {
-                selectNode(data.adjacent_nodes[0]);
-            }
-        });
-}
+                    // Obtiene el nodo anterior
+                    var previousNode = travelPath[travelPath.length - 2]; // Obtiene el penúltimo nodo visitado
 
-function drawGraph(data) {
+                    // Filtra el nodo anterior de la lista de nodos adyacentes
+                    var adjacentNodes = data.adjacent_nodes.filter(node => node !== previousNode);
+
+                    for (var i = 0; i < adjacentNodes.length; i++) {
+                        var option = document.createElement('option');
+                        option.value = adjacentNodes[i];
+                        option.text = 'Nodo ' + adjacentNodes[i];
+                        dropdown.appendChild(option);
+                    }
+
+                    // Añade el nodo actual al final de la ruta de viaje
+                    travelPath.push(nodeId);
+                    console.log(travelPath); // Imprime el array travelPath en la consola
+
+                    drawGraph(data);
+
+                    // Almacena el nodo seleccionado en el almacenamiento local
+                    localStorage.setItem('selectedNode', nodeId);
+                }
+            });
+    }
+    function fillAllNodesDropdown(nodes) {
+        var dropdown = document.getElementById('all-nodes-dropdown');
+        dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
+
+        for (var i = 0; i < nodes.length; i++) {
+            var option = document.createElement('option');
+            option.value = nodes[i].id;
+            option.text = 'Nodo ' + nodes[i].id;
+            dropdown.appendChild(option);
+        }
+    }
+
+    function startFastJourney() {
+        var dropdown = document.getElementById('all-nodes-dropdown');
+        var selectedNode = dropdown.value;
+
+        if (selectedNode) {
+            selectNode(selectedNode);
+        } else {
+            alert('Por favor, selecciona un nodo para iniciar el viaje rápido');
+        }
+    }
+
+
+    // Función para eliminar un nodo
+    function removeNode() {
+        fetch('/remove_node')
+            .then(response => response.json())
+            .then(data => {
+                drawGraph(data);
+                fillAllNodesDropdown(data.nodes); // Actualiza la lista de nodos disponibles
+            });
+    }
+
     // Elimina cualquier gráfico existente
-    svg.selectAll("*").remove();
+    function drawGraph(data) {
+        // Elimina cualquier gráfico existente
+        svg.selectAll("*").remove();
 
-    var nodes = data.nodes;
-    var links = data.links;
-    var simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(400)) // Aumenta este valor para hacer que los nodos estén más separados
-        .force("charge", d3.forceManyBody().strength(-700)) // Aumenta este valor (en negativo) para hacer que los nodos se repelan más
-        .force("center", d3.forceCenter(1920 / 2, 1920 / 2)); // Ajusta estos valores al mismo tamaño que el SVG
+        fillAllNodesDropdown(data.nodes);
+        var nodes = data.nodes;
+        var links = data.links;
 
-    var link = svg.append("g")
-        .attr("stroke", "#999")
-        .attr("stroke-opacity", 0.6)
-        .selectAll("line")
-        .data(links)
-        .join("line");
+        // Crea una lista de enlaces en la ruta de viaje
+        var travelLinks = [];
+        for (var i = 0; i < travelPath.length - 1; i++) {
+            var sourceNode = nodes.find(node => node.id === travelPath[i]);
+            var targetNode = nodes.find(node => node.id === travelPath[i + 1]);
+            travelLinks.push({source: sourceNode, target: targetNode});
+        }
 
-    var node = svg.append("g")
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1.5)
-        .selectAll("circle")
-        .data(nodes)
-        .join("circle")
-        .attr("r", 5)
-        .attr("fill", "#69b3a2");
+        var simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(1000))
+            .force("charge", d3.forceManyBody().strength(-500))
+            .force("center", d3.forceCenter(1920 / 2, 1920 / 2));
 
-    var labels = svg.append("g")
-        .selectAll("text")
-        .data(nodes)
-        .join("text")
-        .text(d => d.id)
-        .attr("x", d => d.x + 10)
-        .attr("y", d => d.y + 4);
+        var link = svg.append("g")
+            .attr("stroke", "#ffffff")
+            .attr("stroke-opacity", 0.6)
+            .selectAll("line")
+            .data(links)
+            .join("line")
+            .attr("stroke-width", 2)
+            .attr("stroke", function(d) {
+                // Si el enlace está en la ruta de viaje, cambia su color a verde
+                for (var i = 0; i < travelLinks.length; i++) {
+                    if ((d.source === travelLinks[i].source && d.target === travelLinks[i].target) ||
+                        (d.source === travelLinks[i].target && d.target === travelLinks[i].source)) {
+                        return "green";
+                    }
+                }
+                return "#ffffff";
+            });
 
-    simulation.on("tick", () => {
-        link
-            .attr("x1", d => d.source.x)
-            .attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x)
-            .attr("y2", d => d.target.y);
+        var node = svg.append("g")
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1.5)
+            .selectAll("circle")
+            .data(nodes)
+            .join("circle")
+                .attr("r", 20)
+                .attr("fill", getRandomColor);
 
-        node
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-
-        labels
+        var labels = svg.append("g")
+            .selectAll("text")
+            .data(nodes)
+            .join("text")
+            .text(d => d.id)
             .attr("x", d => d.x + 10)
-            .attr("y", d => d.y + 4);
+            .attr("y", d => d.y + 4)
+            .style("font-size", "35px")
+            .style("font-weight", "bold");
+
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            labels
+                .attr("x", d => d.x + 10)
+                .attr("y", d => d.y + 4);
+        });
+
+    }
+
+    // Obtén los datos del grafo cuando la página se carga por primera vez
+    fetch('/graph_data')
+        .then(response => response.json())
+        .then(data => drawGraph(data));
+
+    document.getElementById('add-node-button').addEventListener('click', function() {
+        addNode();
     });
-}
 
+    document.getElementById('remove-node-button').addEventListener('click', function() {
+        removeNode();
+    });
 
+    document.getElementById('travel-button').addEventListener('click', function() {
+        var dropdown = document.getElementById('adjacent-nodes-dropdown');
+        var selectedNodeId = dropdown.options[dropdown.selectedIndex].value;
+        if (selectedNodeId) {
+            selectNode(selectedNodeId);
+            console.log(travelPath); // Imprime el array travelPath en la consola
+            // Actualiza el nodo seleccionado después de viajar
+            document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + selectedNodeId;
+        }
+    });
 
-// Obtén los datos del grafo cuando la página se carga por primera vez
-fetch('/graph_data')
-    .then(response => response.json())
-    .then(data => drawGraph(data));
+    window.onload = function() {
+        var selectedNode = localStorage.getItem('selectedNode');
+        if (selectedNode) {
+            selectNode(selectedNode);
+        } else {
+            selectNode(0);
+        }
+    };
+
+        
+    </script>
     
-let isFirstLoad = true;
-
-
-
-document.getElementById('travel-button').addEventListener('click', function() {
-    var dropdown = document.getElementById('adjacent-nodes-dropdown');
-    var selectedNode = dropdown.options[dropdown.selectedIndex].value;
-    if (selectedNode) {
-        selectNode(selectedNode);
-    }
-});
-
-document.getElementById('add-node-button').addEventListener('click', function() {
-    addNode();
-});
-
-document.getElementById('remove-node-button').addEventListener('click', function() {
-    removeNode();
-});
-
-document.getElementById('travel-button').addEventListener('click', function() {
-    var dropdown = document.getElementById('adjacent-nodes-dropdown');
-    var selectedNodeId = dropdown.options[dropdown.selectedIndex].value;
-    if (selectedNodeId) {
-        selectNode(selectedNodeId);
-    }
-});
-
-window.onload = function() {
-    if (isFirstLoad) {
-        // Intentamos seleccionar el primer nodo disponible en la secuencia de 0 a 10
-        selectFirstAvailableNode(0, 10);
-        isFirstLoad = false;
-    }
-};
-
-
-</script>
-
+</div>
 
 <footer class="page-footer">
     <p>&copy; Cristian Moreno , Cesar Epia , Sebatián Olarte </p>
