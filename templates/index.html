@@ -7,32 +7,46 @@
 </head>
 <body>
    
-        
-    <div class="container">
-        <h1 class="page-title">Multiverso</h1>
+    <div class="banner">
+        <h1 class="page-title">Multiverso De la tierra </h1>
+    </div> 
+
+    <div class="banner-container">
+        <div class="banner">
+            <h1 class="page-title">Multiverso De la tierra </h1>
+        </div> 
+    </div>
+
+    <div class="buttons-container">
         <button id="add-node-button">Agregar nodo</button>
         <button id="remove-node-button">Eliminar nodo</button>
-        <p id="selected-node">Nodo seleccionado: 0</p>
+    </div>
     
-        <!-- Contenedor para las barras de opciones y los botones -->
-        <div class="dropdown-button-container">
-            <!-- Contenedor para la barra de opciones de viaje normal y el botón "Iniciar viaje" -->
-            <div>
-                <select id="adjacent-nodes-dropdown">
-                    <option value="">Selecciona un nodo</option>
-                </select>
-                <button id="travel-button">Viajar</button>
-            </div>
-    
-            <!-- Contenedor para la barra de opciones de viaje rápido y el botón "Iniciar viaje rápido" -->
-            <div>
-                <select id="all-nodes-dropdown">
-                    <option value="">Selecciona un nodo</option>
-                </select>
-                <button onclick="startFastJourney()">Iniciar viaje rápido</button>
-            </div>
+    <div class="buttons-container">
+        <div id="normal-travel-container">
+            <select id="adjacent-nodes-dropdown">
+                <option value="">Selecciona un nodo</option>
+            </select>
+            <button id="travel-button">Viajar</button>
         </div>
-        <div id="graph"></div>
+    </div>
+    
+    <div class="buttons-container">
+        <div>
+            <select id="all-nodes-dropdown">
+                <option value="">Selecciona un nodo</option>
+            </select>
+            <button onclick="startFastJourney()">Iniciar viaje rápido</button>
+        </div>
+    </div>
+
+    <div class="nodes-text-container">
+        <p id="selected-node" class="info-text">Nodo seleccionado: 0</p>
+        <p id="node-counter" class="info-text">Nodos activos: 0</p>
+    </div>
+
+    <div id="graph"></div>
+
     </div>
     
     <script src="main.js"></script>
@@ -50,6 +64,16 @@
             .attr("viewBox", "0 0 1920 1920")
             .style("display", "block")
             .style("margin", "auto");
+
+            
+    window.onscroll = function() {
+        var title = document.querySelector('.page-title');
+        if (window.pageYOffset > 50) {
+            title.classList.add('scroll-down');
+        } else {
+            title.classList.remove('scroll-down');
+        }
+    };
 
     function getRandomColor() {
         var r = Math.floor(Math.random() * 256);
@@ -101,6 +125,8 @@
             .then(data => {
                 drawGraph(data);
                 fillAllNodesDropdown(data.nodes); // Actualiza la lista de nodos disponibles
+                document.getElementById('node-counter').textContent = 'Nodos activos: ' + data.nodes.length;
+
             });
     }
     function selectNode(nodeId) {
@@ -172,6 +198,8 @@
             .then(data => {
                 drawGraph(data);
                 fillAllNodesDropdown(data.nodes); // Actualiza la lista de nodos disponibles
+                document.getElementById('node-counter').textContent = 'Nodos activos: ' + data.nodes.length;
+
             });
     }
 
@@ -253,10 +281,15 @@
     }
 
     // Obtén los datos del grafo cuando la página se carga por primera vez
+            // Cuando se carga la página, obtén los datos del grafo y actualiza el contador de nodos
     fetch('/graph_data')
         .then(response => response.json())
-        .then(data => drawGraph(data));
-
+        .then(data => {
+            drawGraph(data);
+            document.getElementById('node-counter').textContent = 'Nodos activos: ' + data.nodes.length;
+        });
+    
+    // Cuando se hace clic en el botón "Agregar nodo", agrega un nuevo nodo al grafo
     document.getElementById('add-node-button').addEventListener('click', function() {
         addNode();
     });
