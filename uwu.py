@@ -33,23 +33,19 @@ def add_node():
 
 # Ruta para eliminar un nodo del gráfico
 # Ruta para eliminar un nodo del gráfico
-@app.route('/remove_node/<int:node_id>', methods=['POST'])
-def remove_node(node_id):
-    global selected_node
 
-    # Verifica si el nodo existe en el gráfico
-    if node_id not in G:
-        return jsonify({'error': 'Node not found'}), 404
 
-    # Elimina el nodo
-    G.remove_node(node_id)
+@app.route('/remove_node')
+def remove_node():
+    # Aquí deberías tener la lógica para eliminar un nodo de tu grafo
+    # Por ejemplo:
+    if len(G.nodes) > 0:
+        G.remove_node(list(G.nodes)[-1])  # Elimina el último nodo
 
-    # Si el nodo eliminado era el nodo seleccionado, deselecciona el nodo
-    if selected_node == node_id:
-        selected_node = None
-
-    # Devuelve los datos del gráfico en formato JSON
-    return jsonify(nx.node_link_data(G))
+    # Obtenemos los datos del gráfico
+    data = nx.node_link_data(G)
+    # Devolvemos los datos en formato JSON
+    return jsonify(data)
 
 
 # Ruta para seleccionar un nodo
@@ -60,10 +56,6 @@ def select_node(node_id):
     # Verifica si el nodo existe en el gráfico
     if node_id not in G:
         return jsonify({'error': 'Node not found'}), 404
-
-    # Elimina el nodo seleccionado anteriormente
-    if selected_node in G:
-        G.remove_node(selected_node)
 
     # Establece el nuevo nodo seleccionado
     selected_node = node_id
@@ -85,7 +77,7 @@ def graph_data():
     # Obtenemos los datos del gráfico
     data = nx.node_link_data(G)
     # Devolvemos los datos en formato JSON
-    return json.dumps(data)
+    return jsonify(data)
 
 # Punto de entrada principal de la aplicación
 if __name__ == "__main__":

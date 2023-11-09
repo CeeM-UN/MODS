@@ -27,10 +27,6 @@
     .attr("width", 1920)
     .attr("height", 1920);
 
-
-
-
-
 function addNode() {
     fetch('/add_node')
         .then(response => response.json())
@@ -63,6 +59,37 @@ function selectNode(nodeId) {
         });
 }
 
+function selectFirstAvailableNode(start, end) {
+        for (let i = start; i <= end; i++) {
+            fetch('/select_node/' + i)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo seleccionar el nodo ' + i);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) {
+                        document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + i;
+                        var dropdown = document.getElementById('adjacent-nodes-dropdown');
+                        dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
+                        for (var j = 0; j < data.adjacent_nodes.length; j++) {
+                            var option = document.createElement('option');
+                            option.value = data.adjacent_nodes[j];
+                            option.text = 'Nodo ' + data.adjacent_nodes[j];
+                            dropdown.appendChild(option);
+                        }
+                        drawGraph(data);
+                        throw new Error('Nodo seleccionado: ' + i);
+                    }
+                })
+                .catch(error => {
+                    if (i === end) {
+                        console.error('No se pudo seleccionar ningún nodo en el rango de ' + start + ' a ' + end);
+                    }
+                });
+        }
+    }
 
 // Función para eliminar un nodo
 function removeNode() {
@@ -82,10 +109,11 @@ function removeNode() {
 }
 
 function drawGraph(data) {
+    // Elimina cualquier gráfico existente
+    svg.selectAll("*").remove();
 
     var nodes = data.nodes;
     var links = data.links;
-    var node = svg.selectAll(".node");
     var simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.id).distance(400)) // Aumenta este valor para hacer que los nodos estén más separados
         .force("charge", d3.forceManyBody().strength(-700)) // Aumenta este valor (en negativo) para hacer que los nodos se repelan más
@@ -130,8 +158,6 @@ function drawGraph(data) {
             .attr("x", d => d.x + 10)
             .attr("y", d => d.y + 4);
     });
-
-
 }
 
 
@@ -159,6 +185,14 @@ document.getElementById('add-node-button').addEventListener('click', function() 
 
 document.getElementById('remove-node-button').addEventListener('click', function() {
     removeNode();
+});
+
+document.getElementById('travel-button').addEventListener('click', function() {
+    var dropdown = document.getElementById('adjacent-nodes-dropdown');
+    var selectedNodeId = dropdown.options[dropdown.selectedIndex].value;
+    if (selectedNodeId) {
+        selectNode(selectedNodeId);
+    }
 });
 
 window.onload = function() {
