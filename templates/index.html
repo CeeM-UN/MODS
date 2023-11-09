@@ -8,24 +8,18 @@
 <body>
    
     <div class="banner">
-        <h1 class="page-title">Multiverso De la tierra </h1>
+        <h1 class="page-title">Multiverso De las tierras </h1>
     </div> 
 
-    <div class="banner-container">
-        <div class="banner">
-            <h1 class="page-title">Multiverso De la tierra </h1>
-        </div> 
-    </div>
-
     <div class="buttons-container">
-        <button id="add-node-button">Agregar nodo</button>
-        <button id="remove-node-button">Eliminar nodo</button>
+        <button id="add-node-button">Agregar Planeta Tierra</button>
+        <button id="remove-node-button">Eliminar Planeta Tierra</button>
     </div>
     
     <div class="buttons-container">
         <div id="normal-travel-container">
             <select id="adjacent-nodes-dropdown">
-                <option value="">Selecciona un nodo</option>
+                <option value="">Selecciona un Planeta Tierra</option>
             </select>
             <button id="travel-button">Viajar</button>
         </div>
@@ -34,15 +28,15 @@
     <div class="buttons-container">
         <div>
             <select id="all-nodes-dropdown">
-                <option value="">Selecciona un nodo</option>
+                <option value="">Selecciona un Planeta Tierra</option>
             </select>
             <button onclick="startFastJourney()">Iniciar viaje rápido</button>
         </div>
     </div>
 
     <div class="nodes-text-container">
-        <p id="selected-node" class="info-text">Nodo seleccionado: 0</p>
-        <p id="node-counter" class="info-text">Nodos activos: 0</p>
+        <p id="selected-node" class="info-text">Planeta tierra seleccionada: 0</p>
+        <p id="node-counter" class="info-text">Planetas tierras en el multiverso: 0</p>
     </div>
 
     <div id="graph"></div>
@@ -95,7 +89,7 @@
                     if (data) {
                         document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + i;
                         var dropdown = document.getElementById('adjacent-nodes-dropdown');
-                        dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
+                        dropdown.innerHTML = '<option value="">Selecciona una tierra</option>';
 
                         // Filtramos el nodo mensajero de la lista de nodos adyacentes
                         var adjacentNodes = data.adjacent_nodes.filter(node => node !== messengerNode);
@@ -125,7 +119,7 @@
             .then(data => {
                 drawGraph(data);
                 fillAllNodesDropdown(data.nodes); // Actualiza la lista de nodos disponibles
-                document.getElementById('node-counter').textContent = 'Nodos activos: ' + data.nodes.length;
+                document.getElementById('node-counter').textContent = 'Planetas tierras : ' + data.nodes.length;
 
             });
     }
@@ -139,9 +133,9 @@
             })
             .then(data => {
                 if (data) {
-                    document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + nodeId;
+                    document.getElementById('selected-node').textContent = 'Planeta tierra seleccionada: ' + nodeId;
                     var dropdown = document.getElementById('adjacent-nodes-dropdown');
-                    dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
+                    dropdown.innerHTML = '<option value="">Selecciona una tierra</option>';
 
                     // Obtiene el nodo anterior
                     var previousNode = travelPath[travelPath.length - 2]; // Obtiene el penúltimo nodo visitado
@@ -149,12 +143,13 @@
                     // Filtra el nodo anterior de la lista de nodos adyacentes
                     var adjacentNodes = data.adjacent_nodes.filter(node => node !== previousNode);
 
-                    for (var i = 0; i < adjacentNodes.length; i++) {
+                    for (var j = 0; j < adjacentNodes.length; j++) {
                         var option = document.createElement('option');
-                        option.value = adjacentNodes[i];
-                        option.text = 'Nodo ' + adjacentNodes[i];
+                        option.value = adjacentNodes[j];
+                        option.text = 'Planeta Tierra ' + adjacentNodes[j];
                         dropdown.appendChild(option);
                     }
+
 
                     // Añade el nodo actual al final de la ruta de viaje
                     travelPath.push(nodeId);
@@ -163,18 +158,23 @@
                     drawGraph(data);
 
                     // Almacena el nodo seleccionado en el almacenamiento local
-                    localStorage.setItem('selectedNode', nodeId);
-                }
+                    localStorage.setItem('selectedNode', nodeId)
+                    if (data.description) {
+                        document.getElementById('node-description').textContent = data.description;
+                    } else {
+                        console.error('La descripción del nodo no está disponible');
+                    }
+                }  
             });
-    }
+        }
     function fillAllNodesDropdown(nodes) {
         var dropdown = document.getElementById('all-nodes-dropdown');
-        dropdown.innerHTML = '<option value="">Selecciona un nodo</option>';
+        dropdown.innerHTML = '<option value="">Selecciona una tierra</option>';
 
         for (var i = 0; i < nodes.length; i++) {
             var option = document.createElement('option');
             option.value = nodes[i].id;
-            option.text = 'Nodo ' + nodes[i].id;
+            option.text = 'Planeta Tierra ' + nodes[i].id;
             dropdown.appendChild(option);
         }
     }
@@ -198,7 +198,7 @@
             .then(data => {
                 drawGraph(data);
                 fillAllNodesDropdown(data.nodes); // Actualiza la lista de nodos disponibles
-                document.getElementById('node-counter').textContent = 'Nodos activos: ' + data.nodes.length;
+                document.getElementById('node-counter').textContent = 'Planetas tierras en el multiverso: ' + data.nodes.length;
 
             });
     }
@@ -286,7 +286,7 @@
         .then(response => response.json())
         .then(data => {
             drawGraph(data);
-            document.getElementById('node-counter').textContent = 'Nodos activos: ' + data.nodes.length;
+            document.getElementById('node-counter').textContent = 'Planetas tierras en el multiverso: ' + data.nodes.length;
         });
     
     // Cuando se hace clic en el botón "Agregar nodo", agrega un nuevo nodo al grafo
@@ -305,16 +305,22 @@
             selectNode(selectedNodeId);
             console.log(travelPath); // Imprime el array travelPath en la consola
             // Actualiza el nodo seleccionado después de viajar
-            document.getElementById('selected-node').textContent = 'Nodo seleccionado: ' + selectedNodeId;
+            document.getElementById('selected-node').textContent = 'Planeta tierra seleccionada: ' + selectedNodeId;
         }
     });
 
     window.onload = function() {
-        var selectedNode = localStorage.getItem('selectedNode');
-        if (selectedNode) {
-            selectNode(selectedNode);
-        } else {
+        var isFirstLoad = localStorage.getItem('isFirstLoad');
+        if (!isFirstLoad) {
             selectNode(0);
+            localStorage.setItem('isFirstLoad', 'false');
+        } else {
+            var selectedNode = localStorage.getItem('selectedNode');
+            if (selectedNode) {
+                selectNode(selectedNode);
+            } else {
+                selectNode(0);
+            }
         }
     };
 
@@ -322,7 +328,9 @@
     </script>
     
 </div>
-
+<div id="node-description-container" class="description-container">
+    <p id="node-description"></p>
+</div>
 <footer class="page-footer">
     <p>&copy; Cristian Moreno , Cesar Epia , Sebatián Olarte </p>
     <p>&copy; 2023 Universidad Nacional de Colombia</p>

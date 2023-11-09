@@ -11,8 +11,9 @@ CORS(app)
 
 # Creamos un gráfico aleatorio y establecemos el nodo seleccionado inicialmente en 0
 G = nx.random_regular_graph(6, 36)
-selected_node = 0
 
+selected_node = 0
+Planetas = []
 # Ruta de inicio que renderiza la página principal
 @app.route('/')
 def index():
@@ -23,8 +24,8 @@ def index():
 def add_node():
     # Obtenemos el ID del nuevo nodo
     node_id = len(G)
-    # Agregamos el nuevo nodo al gráfico
-    G.add_node(node_id)
+    # Agregamos el nuevo nodo al gráfico con su descripción
+    G.add_node(node_id, description=descripciones[node_id])
     # Conectamos el nuevo nodo a los primeros 6 nodos existentes
     for other_node_id in range(max(0, node_id - 6), node_id):
         G.add_edge(node_id, other_node_id)
